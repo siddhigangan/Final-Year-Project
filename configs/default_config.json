@@ -1,0 +1,27 @@
+{
+  "project_name": "SecureCodeRAG",
+  "version": "0.1.0",
+  "logging": {
+    "level": "INFO",
+    "log_file": "logs/app.log"
+  },
+  "pipeline": {
+    "chunk_size": 512,
+    "chunk_overlap": 64,
+    "top_k": 5
+  },
+  "models": {
+    "embedding_model": "text-embedding-3-small",
+    "code_llm": "gpt-4o-mini"
+  },
+  "paths": {
+    "data_clean": "data/clean",
+    "data_poisoned": "data/poisoned",
+    "data_processed": "data/processed",
+    "vectorstore": "data/processed/faiss_index",
+    "results": "results"
+  },
+  "experiment": {
+    "seed": 42
+  }
+}

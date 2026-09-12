@@ -1,0 +1,3 @@
+# SecureCodeRAG - Minimal Foundation Dependencies
+# Core environment configuration
+python-dotenv>=1.0.0
