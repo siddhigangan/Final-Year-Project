@@ -1,27 +1,79 @@
 {
   "project_name": "SecureCodeRAG",
   "version": "0.1.0",
+
   "logging": {
     "level": "INFO",
     "log_file": "logs/app.log"
   },
+
   "pipeline": {
     "chunk_size": 512,
     "chunk_overlap": 64,
-    "top_k": 5
+    "top_k": 5,
+    "reranking_enabled": false
   },
+
+  "embeddings": {
+    "provider": "huggingface",
+    "model": "microsoft/unixcoder-base"
+  },
+
+  "vectorstore": {
+    "provider": "faiss",
+    "path": "data/processed/faiss_index"
+  },
+
+  "generation": {
+    "provider": "ollama",
+    "model": "deepseek-coder:6.7b",
+    "base_url": "http://localhost:11434",
+
+    "hosted_provider": "openai",
+    "hosted_model": "gpt-4o-mini"
+  },
+
   "models": {
-    "embedding_model": "text-embedding-3-small",
-    "code_llm": "gpt-4o-mini"
+    "embedding_provider": "huggingface",
+    "embedding_model": "microsoft/unixcoder-base",
+    "code_llm_provider": "ollama",
+    "code_llm": "deepseek-coder:6.7b"
   },
+
   "paths": {
     "data_clean": "data/clean",
     "data_poisoned": "data/poisoned",
     "data_processed": "data/processed",
+    "benchmarks": "data/benchmarks",
     "vectorstore": "data/processed/faiss_index",
-    "results": "results"
+    "results": "results",
+    "experiments": "experiments"
   },
+
+  "poisoning": {
+    "enabled": false,
+    "rate": 0.1
+  },
+
+  "defense": {
+    "enabled": true,
+    "trust_scoring": true,
+    "anomaly_detection": true,
+    "context_validation": true,
+    "instruction_separation": true,
+    "static_analysis": true
+  },
+
+  "security": {
+    "static_analysis_enabled": true,
+    "semgrep_enabled": false
+  },
+
   "experiment": {
-    "seed": 42
-  }
+    "seed": 42,
+    "repetitions": 1,
+    "save_intermediate_results": true
+  },
+
+  "extra": {}
 }
