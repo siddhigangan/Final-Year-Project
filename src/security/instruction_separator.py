@@ -93,6 +93,25 @@ class SeparatedContent:
 
         return self.instruction_detected
 
+    @property
+    def confidence(self) -> float:
+        """Return a normalized confidence score for the detected risk."""
+
+        if not self.instruction_detected:
+            return 0.0
+
+        weights = {
+            "info": 0.25,
+            "warning": 0.5,
+            "high": 0.75,
+            "critical": 1.0,
+        }
+
+        return max(
+            weights.get(signal.severity, 0.0)
+            for signal in self.signals
+        )
+
 
 @dataclass(frozen=True)
 class SeparationBatchResult:

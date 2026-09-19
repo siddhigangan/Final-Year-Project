@@ -4,12 +4,12 @@ import pytest
 
 from src.models import SecurityDecision, SecuritySeverity
 from src.security.ast_analyzer import ASTAnalyzerError
-from src.security.semgrep_runner import SemgrepRunnerError
 from src.security.findings import (
     SecurityFinding,
     SecurityLocation,
     SecurityReport,
 )
+from src.security.semgrep_runner import SemgrepRunnerError
 from src.security.static_analysis import (
     StaticAnalysisConfig,
     StaticAnalysisInputError,

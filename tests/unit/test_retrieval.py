@@ -20,9 +20,9 @@ from src.retrieval.context_builder import (
 )
 from src.retrieval.reranker import (
     LexicalReranker,
-    RerankRequest,
     RerankerConfigurationError,
     RerankerInputError,
+    RerankRequest,
 )
 from src.retrieval.retriever import (
     RetrievalRequest,
@@ -34,10 +34,7 @@ from src.retrieval.retriever import (
 from src.vectorstore.base import (
     VectorStore,
     VectorStoreInputError,
-    VectorStoreNotFoundError,
-    VectorSearchResult,
 )
-
 
 DIMENSION = 4
 
