@@ -1,65 +1,84 @@
 """
-SecureCodeRAG Logging System.
-
-Provides reusable logging initialization for tracking execution across all
-pipeline stages (ingestion, chunking, embeddings, retrieval, generation, poisoning, defense, evaluation).
+Centralized logging utilities for SecureCodeRAG.
 """
 
 import logging
-import sys
 from pathlib import Path
-from typing import Optional
 
 
 def get_logger(
     name: str = "SecureCodeRAG",
-    log_file: Optional[str] = "logs/app.log",
+    log_file: str | None = "logs/app.log",
     level: str = "INFO",
 ) -> logging.Logger:
     """
-    Configure and return a Logger instance.
+    Create or retrieve a configured application logger.
 
-    Args:
-        name: Module or logger name.
-        log_file: Path to log file. If None, file logging is disabled.
-        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+    Parameters
+    ----------
+    name:
+        Logger name.
 
-    Returns:
-        Configured logging.Logger object.
+    log_file:
+        Optional path for a file handler. If None, only console logging
+        is configured.
+
+    level:
+        Logging level such as DEBUG, INFO, WARNING, ERROR, or CRITICAL.
+
+    Returns
+    -------
+    logging.Logger
+        Configured logger instance.
     """
     logger = logging.getLogger(name)
 
-    # Convert string level to logging integer constant
-    numeric_level = getattr(logging, level.upper(), logging.INFO)
+    numeric_level = getattr(
+        logging,
+        level.upper(),
+        logging.INFO,
+    )
+
     logger.setLevel(numeric_level)
 
-    # Prevent duplicate handlers if logger is already initialized
     if logger.handlers:
         return logger
 
-    # Log line format
     formatter = logging.Formatter(
-        fmt="%(asctime)s | %(name)-20s | %(levelname)-8s | %(message)s",
+        fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # Console Handler (stdout)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
+    console_handler = logging.StreamHandler()
     console_handler.setLevel(numeric_level)
+    console_handler.setFormatter(formatter)
+
     logger.addHandler(console_handler)
 
-    # File Handler (Optional)
     if log_file:
         try:
             log_path = Path(log_file)
-            log_path.parent.mkdir(parents=True, exist_ok=True)
+            log_path.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
 
-            file_handler = logging.FileHandler(log_path, encoding="utf-8")
-            file_handler.setFormatter(formatter)
+            file_handler = logging.FileHandler(
+                log_path,
+                encoding="utf-8",
+            )
             file_handler.setLevel(numeric_level)
+            file_handler.setFormatter(formatter)
+
             logger.addHandler(file_handler)
-        except Exception as e:
-            logger.warning(f"Could not initialize file handler for {log_file}: {e}")
+
+        except (OSError, ValueError) as exc:
+            logger.warning(
+                "Could not initialize file handler for %s: %s",
+                log_file,
+                exc,
+            )
+
+    logger.propagate = False
 
     return logger
