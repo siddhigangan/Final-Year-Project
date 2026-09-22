@@ -11,10 +11,7 @@ from src.models import (
     SecurityDecision,
     SecuritySeverity,
 )
-from src.retrieval.context_builder import (
-    BuiltContext,
-    ContextBuilder,
-)
+from src.retrieval.context_builder import BuiltContext, ContextBuilder
 from src.security.anomaly_detection import (
     AnomalyBatchAssessment,
     AnomalyDetector,
@@ -270,35 +267,23 @@ class DefensePipeline:
             )
 
         try:
-            # ---------------------------------------------------------
-            # L1: Source trust scoring
-            # ---------------------------------------------------------
             trust_result = (
                 self._trust_scorer.score_retrieved_chunks(
                     chunk_list
                 )
             )
 
-            # ---------------------------------------------------------
-            # L2: Suspicious/anomaly detection
-            # ---------------------------------------------------------
             anomaly_result = (
                 self._anomaly_detector.analyze_retrieved_chunks(
                     chunk_list
                 )
             )
 
-            # ---------------------------------------------------------
-            # L3: Context validation
-            # ---------------------------------------------------------
             validation_result = self._context_validator.validate(
                 context,
                 chunk_list,
             )
 
-            # ---------------------------------------------------------
-            # L4: Instruction/data separation
-            # ---------------------------------------------------------
             instruction_results = tuple(
                 self._instruction_separator.separate_chunk(
                     retrieved_chunk
@@ -306,9 +291,6 @@ class DefensePipeline:
                 for retrieved_chunk in chunk_list
             )
 
-            # ---------------------------------------------------------
-            # Build sanitized context
-            # ---------------------------------------------------------
             safe_context = (
                 self._build_safe_context(
                     query=query,
@@ -321,17 +303,11 @@ class DefensePipeline:
                 else context
             )
 
-            # ---------------------------------------------------------
-            # L5: Static security analysis
-            # ---------------------------------------------------------
             static_result = self._analyze_context_code(
                 context=safe_context,
                 retrieved_chunks=chunk_list,
             )
 
-            # ---------------------------------------------------------
-            # Convert security-layer outputs to findings
-            # ---------------------------------------------------------
             findings = self._collect_findings(
                 trust_result=trust_result,
                 anomaly_result=anomaly_result,
@@ -339,16 +315,10 @@ class DefensePipeline:
                 static_result=static_result,
             )
 
-            # ---------------------------------------------------------
-            # Decision engine
-            # ---------------------------------------------------------
             decision_report = self._decision_engine.evaluate(
                 findings
             )
 
-            # ---------------------------------------------------------
-            # Risk engine
-            # ---------------------------------------------------------
             risk_assessment = self._risk_engine.assess_report(
                 decision_report
             )
@@ -432,11 +402,7 @@ class DefensePipeline:
         language: str | None = None,
         query: str | None = None,
     ) -> DefensePipelineResult:
-        """
-        Analyze generated code using L5 static security analysis.
-
-        This method is intentionally independent of retrieved context.
-        """
+        """Analyze generated code using L5 static security analysis."""
         if not isinstance(code, str) or not code.strip():
             raise DefensePipelineInputError(
                 "Generated code must be a non-empty string."
@@ -447,9 +413,6 @@ class DefensePipeline:
                 query=query,
                 input_chunk_count=0,
                 final_decision=SecurityDecision.PASS,
-                blocked=False,
-                requires_review=False,
-                static_analysis=None,
                 metadata={
                     "pipeline_enabled": False,
                     "analyzer_name": self._config.analyzer_name,
@@ -530,7 +493,6 @@ class DefensePipeline:
                 query=query,
                 input_chunk_count=0,
                 final_decision=SecurityDecision.FLAG,
-                blocked=False,
                 requires_review=True,
                 metadata={
                     "pipeline_enabled": True,
@@ -580,12 +542,8 @@ class DefensePipeline:
         instruction_results: Sequence[SeparatedContent],
         validation_result: ContextValidationResult,
     ) -> BuiltContext:
-        """
-        Build a sanitized context after L3/L4.
+        """Build sanitized context after L3/L4."""
 
-        Instruction-like content is removed from the context supplied
-        to downstream generation.
-        """
         if not validation_result.safe_to_use:
             return BuiltContext(
                 text="",
@@ -672,18 +630,8 @@ class DefensePipeline:
         context: BuiltContext | None,
         retrieved_chunks: Sequence[RetrievedChunk] = (),
     ) -> StaticAnalysisResult | None:
-        """
-        Run static analysis against safe retrieved Python code.
-
-        StaticSecurityAnalyzer is currently Python-oriented. The
-        pipeline therefore extracts Python chunks and analyzes them
-        together rather than reconstructing StaticAnalysisResult
-        manually.
-        """
-        if context is None:
-            return None
-
-        if not context.text.strip():
+        """Run L5 against safe retrieved Python code."""
+        if context is None or not context.text.strip():
             return None
 
         python_parts: list[str] = []
@@ -753,9 +701,7 @@ class DefensePipeline:
         """Convert all defense-layer outputs into security findings."""
         findings: list[SecurityFinding] = []
 
-        # -------------------------------------------------------------
-        # L1: Trust findings
-        # -------------------------------------------------------------
+        # L1: Source trust
         for assessment in trust_result.assessments:
             if assessment.score >= self._config.trust_threshold:
                 continue
@@ -764,6 +710,12 @@ class DefensePipeline:
                 SecuritySeverity.HIGH
                 if assessment.score < 0.25
                 else SecuritySeverity.MEDIUM
+            )
+
+            trust_value = getattr(
+                assessment.trust,
+                "value",
+                str(assessment.trust),
             )
 
             findings.append(
@@ -788,11 +740,7 @@ class DefensePipeline:
                                 "relative_path",
                                 None,
                             )
-                            or getattr(
-                                assessment,
-                                "source_file_id",
-                                None,
-                            )
+                            or assessment.source_file_id
                         ),
                     ),
                     evidence=(
@@ -805,29 +753,20 @@ class DefensePipeline:
                     source=self._config.analyzer_name,
                     metadata={
                         "trust_score": assessment.score,
-                        "source_trust": (
-                            assessment.source_trust.value
-                        ),
+                        "source_trust": trust_value,
                     },
                 )
             )
 
-        # -------------------------------------------------------------
-        # L2: Anomaly findings
-        # -------------------------------------------------------------
+        # L2: Anomaly detection
         for assessment in anomaly_result.assessments:
             if not assessment.anomalous:
                 continue
 
-            if assessment.anomaly_score >= 0.80:
-                severity = SecuritySeverity.HIGH
-            else:
-                severity = SecuritySeverity.MEDIUM
-
-            source_file_id = getattr(
-                assessment,
-                "source_file_id",
-                None,
+            severity = (
+                SecuritySeverity.HIGH
+                if assessment.anomaly_score >= 0.80
+                else SecuritySeverity.MEDIUM
             )
 
             findings.append(
@@ -846,7 +785,7 @@ class DefensePipeline:
                     confidence=assessment.anomaly_score,
                     decision=SecurityDecision.FLAG,
                     location=SecurityLocation(
-                        file_name=source_file_id,
+                        file_name=assessment.source_file_id,
                     ),
                     evidence=(
                         f"anomaly_score="
@@ -859,14 +798,12 @@ class DefensePipeline:
                     source=self._config.analyzer_name,
                     metadata={
                         "anomaly_score": assessment.anomaly_score,
-                        "source_file_id": source_file_id,
+                        "source_file_id": assessment.source_file_id,
                     },
                 )
             )
 
-        # -------------------------------------------------------------
-        # L4: Instruction/data separation findings
-        # -------------------------------------------------------------
+        # L4: Instruction/data separation
         for index, separated in enumerate(
             instruction_results,
             start=1,
@@ -914,9 +851,7 @@ class DefensePipeline:
                 )
             )
 
-        # -------------------------------------------------------------
-        # L5: Static analysis findings
-        # -------------------------------------------------------------
+        # L5: Static security analysis
         if (
             self._config.include_static_findings
             and static_result is not None
@@ -924,7 +859,7 @@ class DefensePipeline:
             findings.extend(static_result.findings)
 
         return self._deduplicate_findings(findings)
-    
+
     @staticmethod
     def _deduplicate_findings(
         findings: Sequence[SecurityFinding],
