@@ -599,30 +599,43 @@ class ExperimentOrchestrator:
         *,
         condition: ExperimentCondition,
         task: str,
-        language: ProgrammingLanguage,
+        language: ProgrammingLanguage | str,
         repetition: int,
     ) -> str:
         """Create a deterministic request identifier."""
+        language_value = (
+            language.value
+            if isinstance(language, ProgrammingLanguage)
+            else str(language)
+        )
+
         return (
             f"request__{condition.value}"
             f"__{task}"
-            f"__{language.value}"
+            f"__{language_value}"
             f"__rep{repetition + 1}"
         )
+
 
     @staticmethod
     def _baseline_key(
         *,
         condition: ExperimentCondition,
         task: str,
-        language: ProgrammingLanguage,
+        language: ProgrammingLanguage | str,
         repetition: int,
     ) -> str:
         """Create a deterministic baseline lookup key."""
+        language_value = (
+            language.value
+            if isinstance(language, ProgrammingLanguage)
+            else str(language)
+        )
+
         return (
             f"{condition.value}"
             f"__{task}"
-            f"__{language.value}"
+            f"__{language_value}"
             f"__rep{repetition + 1}"
         )
 
