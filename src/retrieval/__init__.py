@@ -1,4 +1,13 @@
+"""Retrieval package for SecureCodeRAG.
+
+This package provides query retrieval, context construction, and
+optional reranking for code and documentation chunks.
 """
-Retrieval module for SecureCodeRAG.
-Handles querying the vectorstore and retrieving relevant code contexts.
-"""
+
+from __future__ import annotations
+
+__all__ = [
+    "__version__",
+]
+
+__version__ = "0.1.0"
