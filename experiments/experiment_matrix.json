@@ -1,0 +1,142 @@
+{
+  "experiment_matrix": {
+    "name": "CodeRAG-PoisonBench",
+    "version": "1.0",
+    "description": "Controlled evaluation matrix for poisoning and defense experiments in SecureCodeRAG.",
+    "research_scope": "authorized_synthetic_code_rag_security",
+    "synthetic_only": true,
+    "authorized_research_only": true,
+    "seed": 42
+  },
+
+  "conditions": [
+    {
+      "id": "A",
+      "name": "clean_no_defense",
+      "condition": "A_clean_no_defense",
+      "dataset": "clean",
+      "defense_enabled": false,
+      "poisoning_enabled": false,
+      "configuration": "experiments/baseline.json"
+    },
+    {
+      "id": "B",
+      "name": "poisoned_no_defense",
+      "condition": "B_poisoned_no_defense",
+      "dataset": "poisoned",
+      "defense_enabled": false,
+      "poisoning_enabled": true,
+      "configuration": "experiments/poisoning.json"
+    },
+    {
+      "id": "C",
+      "name": "poisoned_defense",
+      "condition": "C_poisoned_defense",
+      "dataset": "poisoned",
+      "defense_enabled": true,
+      "poisoning_enabled": true,
+      "configuration": "experiments/defense.json"
+    },
+    {
+      "id": "D",
+      "name": "clean_defense",
+      "condition": "D_clean_defense",
+      "dataset": "clean",
+      "defense_enabled": true,
+      "poisoning_enabled": false,
+      "configuration": "experiments/clean_defense.json"
+    }
+  ],
+
+  "tasks": [
+    "code_generation",
+    "code_completion",
+    "bug_fixing",
+    "test_generation",
+    "api_usage",
+    "repository_qa"
+  ],
+
+  "languages": [
+    "python",
+    "javascript",
+    "java",
+    "cpp"
+  ],
+
+  "retrieval": {
+    "top_k": 5,
+    "retriever": "default"
+  },
+
+  "generation": {
+    "provider": "ollama",
+    "temperature": 0.0,
+    "max_tokens": 1024
+  },
+
+  "replication": {
+    "repetitions": 3,
+    "independent_runs": true,
+    "seed_strategy": "fixed_base_seed"
+  },
+
+  "evaluation": {
+    "metrics": [
+      "poison_retrieval_rate",
+      "attack_success_rate",
+      "vulnerability_introduction_rate",
+      "utility_score",
+      "latency_ms",
+      "generation_change_rate",
+      "vulnerability_rate",
+      "security_finding_count",
+      "blocking_finding_count"
+    ],
+    "track_causal_chain": true,
+    "track_defense_decisions": true,
+    "run_generated_code_security_analysis": true
+  },
+
+  "poisoning_categories": [
+    "misleading_code",
+    "vulnerable_code",
+    "false_api_guidance",
+    "contradictory_documentation",
+    "instruction_like_content",
+    "false_repository_conventions",
+    "context_manipulation"
+  ],
+
+  "comparisons": [
+    {
+      "name": "poisoning_effect",
+      "baseline": "A_clean_no_defense",
+      "comparison": "B_poisoned_no_defense"
+    },
+    {
+      "name": "defense_effect_on_poisoned_data",
+      "baseline": "B_poisoned_no_defense",
+      "comparison": "C_poisoned_defense"
+    },
+    {
+      "name": "defense_utility_overhead",
+      "baseline": "A_clean_no_defense",
+      "comparison": "D_clean_defense"
+    }
+  ],
+
+  "output": {
+    "result_store": "results/experiments.jsonl",
+    "benchmark_store": "results/benchmark_runs.jsonl",
+    "report_directory": "results",
+    "preserve_raw_results": true
+  },
+
+  "metadata": {
+    "benchmark": "CodeRAG-PoisonBench",
+    "framework": "SecureCodeRAG",
+    "purpose": "controlled_rag_poisoning_evaluation",
+    "no_fabricated_results": true
+  }
+}
