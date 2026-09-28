@@ -1,7 +1,7 @@
-# SecureCodeRAG: Security Evaluation and Defense Pipeline for Retrieval-Augmented Code Generation
+﻿# SecureCodeRAG: Security Evaluation and Defense Pipeline for Retrieval-Augmented Code Generation
 
 [![Build & Tests](https://img.shields.io/badge/Tests-Passing-brightgreen)](https://github.com/siddhigangan/Final-Year-Project)
-[![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/Python-3.12%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-informational)](LICENSE)
 
 ## Project Purpose
@@ -19,14 +19,18 @@ Retrieval-Augmented Generation (RAG) significantly enhances Code LLMs by fetchin
 
 ## Current Status & Completed Functionalities
 
-| Step / Module | Status | Description |
+| Module | Status | Description |
 | :--- | :---: | :--- |
-| **Step 1: Project Foundation** | ✅ Complete | Package structure, configuration system, logging system, directory setup, foundation unit tests. |
-| **Step 2: Ingestion & AST Chunking** | 🔄 Planned | Repository & dataset ingestion, language-specific AST splitting strategies. |
-| **Step 3: Embeddings & VectorStore** | 🔄 Planned | Vector embedding generation and indexing using FAISS/ChromaDB. |
-| **Step 4: RAG Retrieval & Generation** | 🔄 Planned | Top-K context retrieval, prompt formatting, and Code LLM response generation. |
-| **Step 5: Poisoning Attacks** | 🔄 Planned | Data poisoning and backdoor injection attack simulations. |
-| **Step 6: Defense & Validation** | 🔄 Planned | Multi-layer AST security filtering, static analysis, and security evaluation. |
+| **Foundation** | ✅ Complete | Config system, logging, package structure. |
+| **Ingestion, parsing & AST chunking** | ✅ Complete | Repository ingestion, tree-sitter parsing, language-aware chunking. |
+| **Embeddings & vector store** | ✅ Complete | Embedding providers, FAISS store, metadata handling. |
+| **Retrieval & generation** | ✅ Complete | Top-K retrieval, context building, Ollama / OpenAI providers. |
+| **Poisoning (7 categories)** | ✅ Complete | misleading_code, vulnerable_code, false_api_guidance, contradictory_documentation, instruction_like_content, false_repository_conventions, context_manipulation. |
+| **Defense (5 layers)** | ✅ Complete | Source trust, anomaly detection, context validation, instruction separation, static analysis. |
+| **Experiments & evaluation** | ✅ Complete | Config loader, experiment runner, orchestrator, ablation, reporting, metrics. |
+| **CodeRAG-PoisonBench** | ✅ Core complete | Dataset, metrics, runner, report, integration adapter. See `docs/benchmark.md`. |
+| **REST API** | 🔄 Partial | Health check and repository ingestion endpoints. |
+| **Real-LLM benchmark run** | 🔄 Planned | Needed to measure the six text-based poisoning categories. |
 
 ---
 
@@ -101,7 +105,7 @@ SecureCodeRAG/
 ## Quickstart & Setup Guide
 
 ### 1. Prerequisites
-- Python 3.9+ installed on your system.
+- Python 3.12+ (the code uses `slots=True` dataclasses and `X | Y` type unions).
 - Git.
 
 ### 2. Installation
@@ -162,3 +166,17 @@ We adhere strictly to an iterative engineering methodology:
 > **One step → implement → test → document → verify → push.**
 
 Each phase of development is executed cleanly, verified with automated unit tests, documented, and committed to version control prior to advancing to subsequent modules.
+
+---
+
+## One-shot commands
+
+```powershell
+python -m pytest tests -q                # full test suite
+python -m scripts.run_benchmark          # offline benchmark -> results/benchmark_report.json
+docker build -t securecoderag .          # reproducible environment
+docker run --rm securecoderag            # run tests in the container
+```
+
+See `docs/architecture.md` and `docs/benchmark.md` for details.
+
