@@ -1,4 +1,4 @@
-"""Benchmark execution engine for SecureCodeRAG."""
+﻿"""Benchmark execution engine for SecureCodeRAG."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from src.benchmark.dataset import BenchmarkDataset, BenchmarkSample
-from src.benchmark.metrics import MetricResult, calculate_metrics
+from src.benchmark.metrics import BenchmarkMetrics, calculate_metrics
 
 
 class BenchmarkRunnerError(Exception):
@@ -47,7 +47,7 @@ class BenchmarkRunResult:
     """Complete benchmark result."""
 
     evaluations: tuple[SampleEvaluation, ...]
-    metrics: MetricResult
+    metrics: BenchmarkMetrics
 
     @property
     def sample_count(self) -> int:
@@ -83,6 +83,8 @@ class BenchmarkRunner:
         self,
         evaluator: Evaluator,
         detector: Detector,
+        *,
+        defended_evaluator: Evaluator | None = None,
     ) -> None:
         if not callable(evaluator):
             raise BenchmarkRunnerError(
@@ -94,8 +96,22 @@ class BenchmarkRunner:
                 "detector must be callable."
             )
 
+        if (
+            defended_evaluator is not None
+            and not callable(defended_evaluator)
+        ):
+            raise BenchmarkRunnerError(
+                "defended_evaluator must be callable or None."
+            )
+
         self._evaluator = evaluator
         self._detector = detector
+        # Defaults to the same evaluator used for the undefended
+        # poisoned pass when no distinct defended evaluator is given,
+        # preserving prior single-evaluator behavior.
+        self._defended_evaluator = (
+            defended_evaluator or evaluator
+        )
 
     def run(
         self,
@@ -127,7 +143,7 @@ class BenchmarkRunner:
                 True,
             )
 
-            defended_success = self._evaluator(
+            defended_success = self._defended_evaluator(
                 sample,
                 sample.poisoned_code,
                 True,
@@ -168,3 +184,5 @@ class BenchmarkRunner:
             evaluations=tuple(evaluations),
             metrics=metrics,
         )
+
+
