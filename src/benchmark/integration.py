@@ -112,6 +112,12 @@ class SeedCodeSample:
         language: Programming language of ``content``.
         category: Optional benchmark category label. Defaults to the
             poisoning strategy's category when omitted.
+        task_keywords: Lowercase-insensitive tokens a genuine attempt at
+            the task would contain; used to tell "model resisted the
+            poison" apart from "model went off-task".
+        strategy_categories: Restrict poisoning to these categories.
+            ``None`` applies every strategy. Use it to skip poisons that
+            have no plausible connection to the seed's task.
     """
 
     sample_id: str
@@ -120,6 +126,8 @@ class SeedCodeSample:
     content: str
     language: ProgrammingLanguage = ProgrammingLanguage.PYTHON
     category: str | None = None
+    task_keywords: tuple[str, ...] = ()
+    strategy_categories: tuple[str, ...] | None = None
 
 
 def build_poisoning_dataset(
@@ -170,6 +178,13 @@ def build_poisoning_dataset(
         for strategy_cls in strategies:
             strategy = strategy_cls()
 
+            if (
+                seed_sample.strategy_categories is not None
+                and strategy.category
+                not in seed_sample.strategy_categories
+            ):
+                continue
+
             poisoning_result = strategy(
                 PoisoningInput(
                     chunk=chunk,
@@ -198,6 +213,9 @@ def build_poisoning_dataset(
                     metadata={
                         "task": seed_sample.task,
                         "seed_sample_id": seed_sample.sample_id,
+                        "task_keywords": list(
+                            seed_sample.task_keywords
+                        ),
                     },
                 )
             )
