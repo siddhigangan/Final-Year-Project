@@ -80,3 +80,20 @@ Caveats to state in any write-up: a small sample gives coarse rates
 compliance; results describe one model, one prompt template and one
 setup; a local LLM is not bit-for-bit reproducible even at temperature 0.
 
+
+## Single-model scope
+
+All real-LLM results (benchmark, ablation, defended pass) use
+`qwen2.5-coder:3b` only. A second model (`1.5b`, then `7b`) was pulled
+to test whether the measured resistance was specific to this model or
+general across model sizes, but the local Ollama install (0.34.4)
+would not consistently register newly-pulled models on its HTTP API
+(`/api/tags` and `/api/generate`) even though the CLI (`ollama run`)
+could load and run them. This was diagnosed down to a CLI-vs-HTTP-API
+inconsistency specific to that install and not resolved; a full
+reinstall was the suggested fix but not pursued.
+
+Treat every real-LLM finding in this project as describing
+`qwen2.5-coder:3b` specifically, not code LLMs in general. Repeating
+these scripts against a second model, once a working Ollama install is
+available, remains the natural next step to test generality.

@@ -24,14 +24,14 @@ STATUS = [
      "Real pipeline run on 32 samples; see block rate below."),
     ("Benchmark, offline (echo generator)", "partial",
      "Only vulnerable_code is measurable without a real LLM."),
-    ("Benchmark, real LLM (no defense)", "partial",
-     "One 3B model, one hardened prompt, 32 samples."),
+    ("Benchmark, real LLM (no defense)", "done",
+     "qwen2.5-coder:3b, hardened prompt, 32 samples."),
     ("Retrieval-stage poisoning (do poisoned chunks get retrieved?)", "partial",
      "Measured with a lexical embedder on this repo's own src/, not semantic."),
-    ("Defended LLM pass (poisoned vs defended, real model)", "partial",
-     "Script ready (scripts.run_benchmark_llm_defended); run it and rebuild."),
-    ("Prompt ablation (naive vs hardened prompt)", "partial",
-     "Script ready (scripts.run_ablation); run it and rebuild."),
+    ("Defended LLM pass (poisoned vs defended, real model)", "done",
+     "qwen2.5-coder:3b, L1-L5 screens context first; 32 samples."),
+    ("Prompt ablation (naive vs hardened prompt)", "done",
+     "qwen2.5-coder:3b, n=32 per style; no measured difference."),
     ("REST API / Docker", "partial", "API: ingestion only. Docker: not built."),
 ]
 E = html.escape
@@ -200,7 +200,11 @@ em{{width:40px;text-align:right}}code{{font-size:12px;word-break:break-word}}</s
 <section><h2>Problem statement</h2><p>RAG lets a Code LLM pull snippets from a repository. If the
 knowledge base contains insecure or adversarial content, the model may generate vulnerable code.
 Goal: measure that risk under clean and poisoned knowledge bases, then test whether a layered defense reduces it.</p>
-<p>{flow}</p></section>
+<p>{flow}</p>
+<p class="note">All real-LLM results below use <b>qwen2.5-coder:3b</b> at temperature 0.
+A second model was attempted for comparison but abandoned after the local Ollama
+install would not reliably serve additional pulled models via its HTTP API; see
+<code>docs/benchmark.md</code>. Findings describe this one model only.</p></section>
 <section><h2>Where we are</h2><table>{status}</table></section>
 <section><h2>Is poisoning working?</h2>{off_html}{llm_html}</section>
 <section><h2>What the attacker injects</h2><table>{ex}</table></section>

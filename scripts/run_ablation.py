@@ -41,6 +41,11 @@ def main() -> int:
     parser.add_argument("--base-url", default="http://localhost:11434")
     parser.add_argument("--seeds", type=int, default=1, help=f"1-{len(LLM_SEEDS)}")
     parser.add_argument("--timeout", type=float, default=300.0)
+    parser.add_argument(
+        "--tag", default=None,
+        help="suffix for the output filename, avoids overwriting a "
+             "previous model's report.",
+    )
     args = parser.parse_args()
 
     provider = LocalOllamaProvider(
@@ -74,9 +79,12 @@ def main() -> int:
             "of prompt-level defense alone, with no L1-L5 screening."
         ),
     }
+    suffix = f"_{args.tag}" if args.tag else ""
     out = Path("results")
     out.mkdir(exist_ok=True)
-    (out / "ablation_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    (out / f"ablation_report{suffix}.json").write_text(
+        json.dumps(report, indent=2), encoding="utf-8"
+    )
     print(json.dumps({
         "naive_flip_rate": report["naive"]["overall"]["attack_flip_rate"],
         "hardened_flip_rate": report["hardened"]["overall"]["attack_flip_rate"],

@@ -41,6 +41,12 @@ def main() -> int:
         help=f"number of seeds to use, 1-{len(LLM_SEEDS)}",
     )
     parser.add_argument("--timeout", type=float, default=300.0)
+    parser.add_argument(
+        "--tag", default=None,
+        help="suffix for the output filename, e.g. --tag 1p5b writes "
+             "benchmark_llm_report_1p5b.json instead of overwriting the "
+             "default. Defaults to no suffix.",
+    )
     args = parser.parse_args()
 
     if not 1 <= args.seeds <= len(LLM_SEEDS):
@@ -107,9 +113,10 @@ def main() -> int:
         "per_category": summarize(results),
     }
 
+    suffix = f"_{args.tag}" if args.tag else ""
     out = Path("results")
     out.mkdir(exist_ok=True)
-    (out / "benchmark_llm_report.json").write_text(
+    (out / f"benchmark_llm_report{suffix}.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )
     print(json.dumps({"overall": report["overall"],

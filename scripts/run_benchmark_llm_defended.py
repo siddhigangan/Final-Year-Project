@@ -28,6 +28,11 @@ def main() -> int:
     parser.add_argument("--base-url", default="http://localhost:11434")
     parser.add_argument("--seeds", type=int, default=1, help=f"1-{len(LLM_SEEDS)}")
     parser.add_argument("--timeout", type=float, default=300.0)
+    parser.add_argument(
+        "--tag", default=None,
+        help="suffix for the output filename, avoids overwriting a "
+             "previous model's report.",
+    )
     args = parser.parse_args()
 
     provider = LocalOllamaProvider(
@@ -66,9 +71,10 @@ def main() -> int:
             "is computed only over unblocked calls that reached it."
         ),
     }
+    suffix = f"_{args.tag}" if args.tag else ""
     out = Path("results")
     out.mkdir(exist_ok=True)
-    (out / "benchmark_llm_defended_report.json").write_text(
+    (out / f"benchmark_llm_defended_report{suffix}.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )
     print(json.dumps({"overall": report["overall"]}, indent=2))
