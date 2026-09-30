@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+﻿# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -49,8 +49,6 @@ data/processed/*
 !data/processed/.gitkeep
 results/*
 !results/.gitkeep
-experiments/*
-!experiments/.gitkeep
 
 # Pytest / Test artifacts
 .pytest_cache/
@@ -60,3 +58,4 @@ htmlcov/
 # Operating system files
 .DS_Store
 Thumbs.db
+

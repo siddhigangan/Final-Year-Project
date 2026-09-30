@@ -1,0 +1,115 @@
+{
+  "experiment_group": "clean_defense",
+  "description": "SecureCodeRAG clean-data defense experiment using the unified L1-L5 defense pipeline.",
+  "version": "1.0",
+  "seed": 42,
+
+  "conditions": [
+    {
+      "condition": "D_clean_defense",
+
+      "dataset": {
+        "type": "clean",
+        "path": "data/clean"
+      },
+
+      "poisoning": {
+        "enabled": false,
+        "categories": [],
+        "synthetic_only": true,
+        "authorized_research_only": true
+      },
+
+      "defense": {
+        "enabled": true,
+
+        "layers": {
+          "L1": {
+            "name": "source_trust_scoring",
+            "enabled": true,
+            "threshold": 0.50
+          },
+
+          "L2": {
+            "name": "anomaly_detection",
+            "enabled": true,
+            "threshold": 0.50
+          },
+
+          "L3": {
+            "name": "context_validation",
+            "enabled": true
+          },
+
+          "L4": {
+            "name": "instruction_data_separation",
+            "enabled": true
+          },
+
+          "L5": {
+            "name": "static_security_analysis",
+            "enabled": true
+          }
+        },
+
+        "fail_closed": true,
+        "build_safe_context": true,
+        "analyze_generated_code": true
+      }
+    }
+  ],
+
+  "tasks": [
+    "code_generation",
+    "code_completion",
+    "bug_fixing",
+    "test_generation",
+    "api_usage",
+    "repository_qa"
+  ],
+
+  "languages": [
+    "python",
+    "javascript",
+    "java",
+    "cpp"
+  ],
+
+  "retrieval": {
+    "top_k": 5,
+    "retriever": "default"
+  },
+
+  "generation": {
+    "provider": "ollama",
+    "temperature": 0.0,
+    "max_tokens": 1024
+  },
+
+  "evaluation": {
+    "calculate_poison_retrieval_rate": true,
+    "calculate_attack_success_rate": true,
+    "calculate_vulnerability_introduction_rate": true,
+    "calculate_utility_score": true,
+    "track_generation_changes": true,
+    "run_security_analysis": true,
+    "track_causal_chain": true,
+    "record_defense_decisions": true,
+    "record_blocked_context": true
+  },
+
+  "metadata": {
+    "research_scope": "authorized_synthetic_code_rag_security",
+    "corpus_type": "clean",
+    "defense_enabled": true,
+    "poisoning_enabled": false,
+    "synthetic_only": true,
+    "defense_layers": [
+      "L1_source_trust_scoring",
+      "L2_anomaly_detection",
+      "L3_context_validation",
+      "L4_instruction_data_separation",
+      "L5_static_security_analysis"
+    ]
+  }
+}

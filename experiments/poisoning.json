@@ -1,0 +1,94 @@
+{
+  "experiment_group": "poisoning",
+  "description": "SecureCodeRAG poisoning experiment using synthetic authorized poisoning categories without defense layers.",
+  "version": "1.0",
+  "seed": 42,
+
+  "conditions": [
+    {
+      "condition": "B_poisoned_no_defense",
+
+      "dataset": {
+        "type": "poisoned",
+        "base_path": "data/clean",
+        "output_path": "data/poisoned"
+      },
+
+      "poisoning": {
+        "enabled": true,
+
+        "categories": [
+          "misleading_code",
+          "vulnerable_code",
+          "false_api_guidance",
+          "contradictory_documentation",
+          "instruction_like_content",
+          "false_repository_conventions",
+          "context_manipulation"
+        ],
+
+        "synthetic_only": true,
+        "authorized_research_only": true
+      },
+
+      "defense": {
+        "enabled": false,
+        "layers": []
+      }
+    }
+  ],
+
+  "tasks": [
+    "code_generation",
+    "code_completion",
+    "bug_fixing",
+    "test_generation",
+    "api_usage",
+    "repository_qa"
+  ],
+
+  "languages": [
+    "python",
+    "javascript",
+    "java",
+    "cpp"
+  ],
+
+  "retrieval": {
+    "top_k": 5,
+    "retriever": "default"
+  },
+
+  "generation": {
+    "provider": "ollama",
+    "temperature": 0.0,
+    "max_tokens": 1024
+  },
+
+  "evaluation": {
+    "calculate_poison_retrieval_rate": true,
+    "calculate_attack_success_rate": true,
+    "calculate_vulnerability_introduction_rate": true,
+    "calculate_utility_score": true,
+    "track_generation_changes": true,
+    "run_security_analysis": true,
+    "track_causal_chain": true
+  },
+
+  "metadata": {
+    "research_scope": "authorized_synthetic_code_rag_security",
+    "corpus_type": "poisoned",
+    "defense_enabled": false,
+    "poisoning_enabled": true,
+    "synthetic_only": true,
+    "poisoning_categories": [
+      "misleading_code",
+      "vulnerable_code",
+      "false_api_guidance",
+      "contradictory_documentation",
+      "instruction_like_content",
+      "false_repository_conventions",
+      "context_manipulation"
+    ]
+  }
+}
