@@ -32,6 +32,8 @@ STATUS = [
      "qwen2.5-coder:3b, L1-L5 screens context first; 32 samples."),
     ("Prompt ablation (naive vs hardened prompt)", "done",
      "qwen2.5-coder:3b, n=32 per style; no measured difference."),
+    ("Defense layer ablation (L1 -> L1-L5, blueprint sec. 32)", "done",
+     "No LLM. Only L2 and L5 contribute; L1, L3, L4 measure zero here."),
     ("REST API / Docker", "partial", "API: ingestion only. Docker: not built."),
 ]
 E = html.escape
@@ -65,6 +67,26 @@ def bars(per: dict) -> str:
             f'{E(m["rule_scope"])}</i></span><div class="bar"><b style="width:{w}%"></b>'
             f'</div><em>{pct(m["attack_flip_rate"])}</em></div>')
     return "".join(out)
+
+
+def layer_ablation_html(ablation: dict | None) -> str:
+    if not ablation:
+        return "<p class='open'>Not run. Use scripts.run_layer_ablation.</p>"
+    steps = list(ablation["overall"])
+    header = "".join(f"<th>{E(s)}</th>" for s in steps)
+    overall_row = "".join(
+        f"<td>{pct(ablation['overall'][s]['block_rate'])}</td>" for s in steps)
+    cat_rows = "".join(
+        f"<tr><td>{E(cat)}</td>" +
+        "".join(f"<td>{pct(m[s]['block_rate'])}</td>" for s in steps) + "</tr>"
+        for cat, m in sorted(ablation["per_category"].items()))
+    return (f"<p>{ablation['samples']} samples, no LLM. Each column adds one "
+            "layer; a category's rate jumping between two columns shows "
+            "which layer caught it.</p>"
+            f"<table><tr><th>Overall</th>{header}</tr>"
+            f"<tr><td><b>block rate</b></td>{overall_row}</tr></table>"
+            "<table><tr><th>Category</th>" + header + f"</tr>{cat_rows}</table>"
+            f"<p class='note'>{E(ablation['note'])}</p>")
 
 
 def defense_html(defense: dict | None) -> str:
@@ -150,7 +172,8 @@ def defended_llm_html(defended: dict | None) -> str:
 def build_html(offline: dict | None, llm: dict | None,
                examples: list[tuple[str, list[str]]],
                defense: dict | None = None, retrieval: dict | None = None,
-               ablation: dict | None = None, defended: dict | None = None) -> str:
+               ablation: dict | None = None, defended: dict | None = None,
+               layer_ablation: dict | None = None) -> str:
     flow = " &rarr; ".join(f"<span class='box'>{E(s)}</span>" for s in FLOW)
     status = "".join(
         f"<tr><td>{E(a)}</td><td class='{s}'>{s}</td><td>{E(n)}</td></tr>"
@@ -208,6 +231,7 @@ install would not reliably serve additional pulled models via its HTTP API; see
 <section><h2>Where we are</h2><table>{status}</table></section>
 <section><h2>Is poisoning working?</h2>{off_html}{llm_html}</section>
 <section><h2>What the attacker injects</h2><table>{ex}</table></section>
+<section><h2>Which layer catches what? (layer-by-layer ablation)</h2>{layer_ablation_html(layer_ablation)}</section>
 <section><h2>Does the defense actually block anything?</h2>{defense_html(defense)}</section>
 <section><h2>Would poisoned chunks be retrieved?</h2>{retrieval_html(retrieval)}</section>
 <section><h2>Does the prompt matter, on its own?</h2>{ablation_html(ablation)}</section>
@@ -224,6 +248,7 @@ def main() -> None:
         retrieval=load("retrieval_report.json"),
         ablation=load("ablation_report.json"),
         defended=load("benchmark_llm_defended_report.json"),
+        layer_ablation=load("layer_ablation_report.json"),
     )
     out = Path("results")
     out.mkdir(exist_ok=True)

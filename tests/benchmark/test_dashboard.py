@@ -1,4 +1,4 @@
-﻿"""Tests for the dashboard generator."""
+"""Tests for the dashboard generator."""
 
 from __future__ import annotations
 
@@ -20,8 +20,25 @@ def test_renders_without_any_results() -> None:
     page = build_html(None, None, [])
 
     assert "Problem statement" in page
-    assert page.count("Not run") == 6
+    assert page.count("Not run") == 7
     assert "Would poisoned chunks be retrieved?" in page
+    assert "Which layer catches what?" in page
+
+
+def test_layer_ablation_renders_real_numbers() -> None:
+    page = build_html(None, None, [], layer_ablation={
+        "samples": 32,
+        "note": "L3 emits nothing.",
+        "overall": {"no_defense": {"block_rate": 0.0}, "L1": {"block_rate": 0.0},
+                    "L1_L2": {"block_rate": 0.5}},
+        "per_category": {
+            "vulnerable_code": {"no_defense": {"block_rate": 0.0}, "L1": {"block_rate": 0.0},
+                                 "L1_L2": {"block_rate": 1.0}},
+        },
+    })
+
+    assert "50%" in page and "vulnerable_code" in page
+    assert "L3 emits nothing." in page
 
 
 def test_defense_report_renders_real_numbers() -> None:
