@@ -62,11 +62,22 @@ def bars(per: dict) -> str:
     out = []
     for cat, m in sorted(per.items()):
         w = m["attack_flip_rate"] * 100
+        sev = "sev-hi" if w >= 50 else "sev-mid" if w > 0 else "sev-ok"
         out.append(
             f'<div class="row"><span>{E(cat)} <i>n={m["samples"]}, '
-            f'{E(m["rule_scope"])}</i></span><div class="bar"><b style="width:{w}%"></b>'
-            f'</div><em>{pct(m["attack_flip_rate"])}</em></div>')
+            f'{E(m["rule_scope"])}</i></span><div class="bar"><b class="{sev}" '
+            f'style="width:{w}%"></b></div><em>{pct(m["attack_flip_rate"])}</em></div>')
     return "".join(out)
+
+
+def status_badge(status: str) -> str:
+    glyph = {"done": "&#10003;", "partial": "&#8226;", "open": "&#9675;"}[status]
+    return f'<span class="badge {status}">{glyph} {status}</span>'
+
+
+def stat_card(value: str, label: str, tone: str = "") -> str:
+    return (f'<div class="stat {tone}"><div class="stat-value">{value}</div>'
+            f'<div class="stat-label">{label}</div></div>')
 
 
 def layer_ablation_html(ablation: dict | None) -> str:
@@ -176,8 +187,9 @@ def build_html(offline: dict | None, llm: dict | None,
                layer_ablation: dict | None = None) -> str:
     flow = " &rarr; ".join(f"<span class='box'>{E(s)}</span>" for s in FLOW)
     status = "".join(
-        f"<tr><td>{E(a)}</td><td class='{s}'>{s}</td><td>{E(n)}</td></tr>"
+        f"<tr><td>{E(a)}</td><td>{status_badge(s)}</td><td>{E(n)}</td></tr>"
         for a, s, n in STATUS)
+    done_count = sum(1 for _, s, _ in STATUS if s == "done")
     ex = "".join(f"<tr><td>{E(c)}</td><td><code>{E(' | '.join(a))}</code></td></tr>"
                  for c, a in examples)
 
@@ -206,20 +218,102 @@ def build_html(offline: dict | None, llm: dict | None,
     else:
         off_html = "<p class='open'>Not run. Use scripts.run_benchmark.</p>"
 
+    stats = [stat_card(f"{done_count}/{len(STATUS)}", "checks complete")]
+    if llm:
+        stats.append(stat_card(
+            pct(llm["overall"]["attack_flip_rate"]), "attack flip rate",
+            "tone-warn" if llm["overall"]["attack_flip_rate"] > 0 else "tone-ok"))
+    if layer_ablation:
+        top = layer_ablation["overall"][list(layer_ablation["overall"])[-1]]
+        stats.append(stat_card(pct(top["block_rate"]), "fully-defended block rate"))
+    if defense:
+        fp = [m["false_positive_rate"] for m in defense["per_category"].values()]
+        stats.append(stat_card(
+            pct(max(fp) if fp else 0.0), "worst false-positive rate", "tone-ok"))
+    stats_html = "".join(stats)
+
+    nav_targets = [
+        ("where", "Where we are"), ("poisoning", "Is poisoning working?"),
+        ("inject", "What's injected"), ("layers", "Layer ablation"),
+        ("defense", "Defense block rate"), ("retrieval", "Retrieval"),
+        ("prompt", "Prompt ablation"), ("defended", "Defended + LLM"),
+    ]
+    nav_html = "".join(f'<a href="#{i}">{E(t)}</a>' for i, t in nav_targets)
+
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SecureCodeRAG Dashboard</title><style>
-:root{{--bg:#fff;--fg:#1a1a1a;--mut:#666;--card:#f5f5f7;--acc:#2b6cb0}}
-@media(prefers-color-scheme:dark){{:root{{--bg:#16181d;--fg:#e8e8e8;--mut:#9aa;--card:#22252c;--acc:#63b3ed}}}}
-body{{background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;max-width:980px;margin:auto;padding:16px}}
-section{{background:var(--card);border-radius:10px;padding:14px 18px;margin:14px 0}}
-h1,h2{{margin:.3em 0}}table{{width:100%;border-collapse:collapse}}td{{padding:4px 6px;border-bottom:1px solid #8884;vertical-align:top}}
-.box{{display:inline-block;border:1px solid var(--acc);border-radius:6px;padding:2px 8px;margin:3px}}
-.done{{color:#2f9e44}}.partial{{color:#e08a00}}.open{{color:#d6336c}}.note,i{{color:var(--mut);font-size:13px}}
-.row{{display:flex;gap:8px;align-items:center;margin:4px 0}}.row span{{flex:0 0 46%}}
-.bar{{flex:1;height:14px;background:#8883;border-radius:7px}}.bar b{{display:block;height:100%;background:var(--acc);border-radius:7px}}
-em{{width:40px;text-align:right}}code{{font-size:12px;word-break:break-word}}</style></head><body>
-<h1>SecureCodeRAG</h1><p class="note">Security evaluation and defense for retrieval-augmented code generation.</p>
+<title>SecureCodeRAG Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{{
+  --bg:#f7f8fb; --fg:#161a20; --mut:#5b6472; --card:#ffffff; --border:#e4e7ec;
+  --acc:#2b6cb0; --acc-soft:#e8f1fb;
+  --ok:#1a8a4a; --ok-soft:#e6f6ec;
+  --warn:#b26a00; --warn-soft:#fff3e0;
+  --bad:#c53030; --bad-soft:#fdecec;
+  --radius:14px; --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+}}
+@media(prefers-color-scheme:dark){{:root{{
+  --bg:#0f1115; --fg:#e7e9ee; --mut:#98a2b3; --card:#181b21; --border:#2a2f38;
+  --acc:#6fa8dc; --acc-soft:#1b2a3a;
+  --ok:#3ecf7e; --ok-soft:#12291d;
+  --warn:#e0a340; --warn-soft:#2c2210;
+  --bad:#f26161; --bad-soft:#2c1616;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}}}}
+*{{box-sizing:border-box}}
+body{{background:var(--bg);color:var(--fg);font:15px/1.6 Inter,system-ui,sans-serif;
+  max-width:1060px;margin:auto;padding:0 18px 60px}}
+h1{{font-size:1.7rem;font-weight:700;margin:.2em 0 0}}
+h2{{font-size:1.05rem;font-weight:600;margin:0 0 .6em;display:flex;align-items:center;gap:.5em}}
+p{{margin:.5em 0}}
+header.top{{position:sticky;top:0;background:var(--bg);padding:20px 0 10px;z-index:5;
+  border-bottom:1px solid var(--border)}}
+nav.jump{{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}}
+nav.jump a{{font-size:.8rem;color:var(--mut);text-decoration:none;background:var(--card);
+  border:1px solid var(--border);border-radius:20px;padding:5px 12px;transition:.15s}}
+nav.jump a:hover{{color:var(--acc);border-color:var(--acc)}}
+.stat-strip{{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 6px}}
+.stat{{flex:1;min-width:150px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}}
+.stat-value{{font-family:'JetBrains Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--acc)}}
+.stat.tone-ok .stat-value{{color:var(--ok)}}
+.stat.tone-warn .stat-value{{color:var(--warn)}}
+.stat-label{{color:var(--mut);font-size:.78rem;margin-top:2px;text-transform:uppercase;letter-spacing:.03em}}
+section{{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px 22px;margin:16px 0;box-shadow:var(--shadow);scroll-margin-top:96px}}
+table{{width:100%;border-collapse:collapse;font-size:.88rem}}
+th{{text-align:left;color:var(--mut);font-weight:600;font-size:.75rem;text-transform:uppercase;
+  letter-spacing:.03em;padding:8px 10px;border-bottom:2px solid var(--border)}}
+td{{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}}
+tr:last-child td{{border-bottom:none}}
+tbody tr:hover td{{background:var(--acc-soft)}}
+.box{{display:inline-block;border:1px solid var(--acc);color:var(--acc);border-radius:8px;
+  padding:4px 11px;margin:3px;font-size:.85rem;background:var(--acc-soft)}}
+.badge{{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:3px 11px;
+  font-size:.78rem;font-weight:600}}
+.badge.done{{background:var(--ok-soft);color:var(--ok)}}
+.badge.partial{{background:var(--warn-soft);color:var(--warn)}}
+.badge.open{{background:var(--bad-soft);color:var(--bad)}}
+.note,i{{color:var(--mut);font-size:.85rem}}
+.open{{color:var(--bad)}}
+.row{{display:flex;gap:10px;align-items:center;margin:7px 0}}
+.row span{{flex:0 0 44%;font-size:.85rem}}
+.bar{{flex:1;height:12px;background:var(--border);border-radius:7px;overflow:hidden}}
+.bar b{{display:block;height:100%;border-radius:7px;background:var(--acc)}}
+.bar b.sev-ok{{background:var(--ok)}}.bar b.sev-mid{{background:var(--warn)}}.bar b.sev-hi{{background:var(--bad)}}
+em{{width:42px;text-align:right;font-style:normal;font-family:'JetBrains Mono',monospace;font-size:.82rem}}
+code{{font-family:'JetBrains Mono',monospace;font-size:.82em;background:var(--acc-soft);
+  padding:1px 5px;border-radius:4px;word-break:break-word}}
+footer{{color:var(--mut);font-size:.8rem;text-align:center;margin-top:30px}}
+</style></head><body>
+<header class="top">
+<h1>SecureCodeRAG</h1>
+<p class="note">Security evaluation and defense for retrieval-augmented code generation.</p>
+<nav class="jump">{nav_html}</nav>
+</header>
+<div class="stat-strip">{stats_html}</div>
 <section><h2>Problem statement</h2><p>RAG lets a Code LLM pull snippets from a repository. If the
 knowledge base contains insecure or adversarial content, the model may generate vulnerable code.
 Goal: measure that risk under clean and poisoned knowledge bases, then test whether a layered defense reduces it.</p>
@@ -228,14 +322,15 @@ Goal: measure that risk under clean and poisoned knowledge bases, then test whet
 A second model was attempted for comparison but abandoned after the local Ollama
 install would not reliably serve additional pulled models via its HTTP API; see
 <code>docs/benchmark.md</code>. Findings describe this one model only.</p></section>
-<section><h2>Where we are</h2><table>{status}</table></section>
-<section><h2>Is poisoning working?</h2>{off_html}{llm_html}</section>
-<section><h2>What the attacker injects</h2><table>{ex}</table></section>
-<section><h2>Which layer catches what? (layer-by-layer ablation)</h2>{layer_ablation_html(layer_ablation)}</section>
-<section><h2>Does the defense actually block anything?</h2>{defense_html(defense)}</section>
-<section><h2>Would poisoned chunks be retrieved?</h2>{retrieval_html(retrieval)}</section>
-<section><h2>Does the prompt matter, on its own?</h2>{ablation_html(ablation)}</section>
-<section><h2>Poisoned + defended, real model</h2>{defended_llm_html(defended)}</section>
+<section id="where"><h2>Where we are</h2><table>{status}</table></section>
+<section id="poisoning"><h2>Is poisoning working?</h2>{off_html}{llm_html}</section>
+<section id="inject"><h2>What the attacker injects</h2><table>{ex}</table></section>
+<section id="layers"><h2>Which layer catches what? (layer-by-layer ablation)</h2>{layer_ablation_html(layer_ablation)}</section>
+<section id="defense"><h2>Does the defense actually block anything?</h2>{defense_html(defense)}</section>
+<section id="retrieval"><h2>Would poisoned chunks be retrieved?</h2>{retrieval_html(retrieval)}</section>
+<section id="prompt"><h2>Does the prompt matter, on its own?</h2>{ablation_html(ablation)}</section>
+<section id="defended"><h2>Poisoned + defended, real model</h2>{defended_llm_html(defended)}</section>
+<footer>Generated by scripts.build_dashboard &middot; every number above is read from results/*.json, never invented.</footer>
 </body></html>"""
 
 
