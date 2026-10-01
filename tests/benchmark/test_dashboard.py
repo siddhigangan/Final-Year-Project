@@ -20,9 +20,33 @@ def test_renders_without_any_results() -> None:
     page = build_html(None, None, [])
 
     assert "Problem statement" in page
-    assert page.count("Not run") == 7
+    assert page.count("Not run") == 8
     assert "Would poisoned chunks be retrieved?" in page
     assert "Which layer catches what?" in page
+    assert "degrade legitimate, non-poisoned code?" in page
+
+
+def test_utility_renders_real_numbers() -> None:
+    page = build_html(None, None, [], utility={
+        "sample_count": 50, "source_root": "src",
+        "false_positive_rate": 0.0, "false_positive_count": 0,
+        "false_positive_chunk_ids": [], "mean_finding_count": 0.0,
+        "note": "test note",
+    })
+
+    assert "50 real" in page and "0%" in page
+    assert "test note" in page
+
+
+def test_utility_lists_false_positive_chunk_ids_when_present() -> None:
+    page = build_html(None, None, [], utility={
+        "sample_count": 2, "source_root": "src",
+        "false_positive_rate": 0.5, "false_positive_count": 1,
+        "false_positive_chunk_ids": ["distractor-foo.py-bar"],
+        "mean_finding_count": 0.5, "note": "n",
+    })
+
+    assert "distractor-foo.py-bar" in page
 
 
 def test_layer_ablation_renders_real_numbers() -> None:
